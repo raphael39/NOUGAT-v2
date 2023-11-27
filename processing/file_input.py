@@ -41,5 +41,7 @@ class FileInput:
 
                     # Update current_tool
                     current_tool = next_tool
+                    
 
-        print(f"Datei verarbeitet und gespeichert als: {new_file_path}")
+
+        print(f"Datei verarbeitet mit aufheizen, Toolchange und parken. gespeichert als: {new_file_path}")
