@@ -1,54 +1,38 @@
 import os
+from pathlib import Path
 
 class FileInput:
     def __init__(self, file_path):
-        self.file_path = file_path
+        self.file_path = Path(file_path)
 
     def process_file(self):
-        dir_name, file_name = os.path.split(self.file_path)
-        name, _ = os.path.splitext(file_name)
-        new_file_name = f"{name}_veraendert.gcode"
-        new_file_path = os.path.join(dir_name, new_file_name)
+        new_file_path = self.file_path.with_name(f"{self.file_path.stem}_nougat.gcode")
+        current_tool = 'T0'
 
-        with open(self.file_path, 'r') as original_file, open(new_file_path, 'w') as new_file:
-            current_tool = 'T0'  # Start mit dem ersten Werkzeug
-
+        with self.file_path.open('r') as original_file, new_file_path.open('w') as new_file:
             for line in original_file:
                 new_file.write(line)
-
-                # Überprüfen, ob es sich um eine Layer-Wechselzeile handelt
                 if line.startswith(';LAYER:'):
-
-                    if line.startswith(';LAYER:0'):
-                        # Startpunkt
-                        new_file.write("M104 S205 T0\n")
-                        new_file.write("M104 S205 T1\n")
+                    if line == ';LAYER:0\n':  # Verwenden Sie '==' anstelle von '.equals()'
                         continue
-
-                    # Werkzeug wechseln
-                    next_tool = 'T1' if current_tool == 'T0' else 'T0'
-
-                    # Parkbefehl für das aktuelle Werkzeug
-                    if current_tool == 'T0':
-                        park_command = 'G0 f500 X-14\t;park left extruder\n'
-                    else:
-                        park_command = 'G0 f500 X342\t;park right extruder\n'
-                    new_file.write(park_command)
-                    # G1 F600 E-6 ;retract filament
-                    new_file.write('G1 F600 E-6\n')
-
-                    # Neues Werkzeug aktivieren
-                    tool_change_command = f'{next_tool}\n'
-                    new_file.write(tool_change_command)
-                    
-                    new_extruder_command = f'M900 {next_tool} K0.054\n'
-                    new_filament_command = f'G1 F600 E5.5\n'
-                    new_fan_command = f'M106 S255\n'
-                    new_file.write(new_extruder_command)
-                    new_file.write(new_filament_command)
-                    new_file.write(new_fan_command)
-
-                    # Update current_tool
-                    current_tool = next_tool
+                    if line == ';LAYER:1\n':
+                        continue
+                    if line == ';LAYER:2\n':
+                        continue
+                    self.handle_layer_change(line, new_file, current_tool)
+                    current_tool = 'T1' if current_tool == 'T0' else 'T0'
 
         print(f"Datei verarbeitet und gespeichert als: {new_file_path}")
+
+    def handle_layer_change(self, line, new_file, current_tool):
+        commands = [
+            "G1 E-6 F300\n",  # Fügen Sie einen Zeilenumbruch am Ende hinzu
+            'G0 f100 X-14\t;park left extruder\n' if current_tool == 'T0' else 'G0 f500 X342\t;park right extruder\n',  
+            f'{self.get_next_tool(current_tool)}\n',  
+        ]
+
+        new_file.writelines(commands)
+
+    @staticmethod
+    def get_next_tool(current_tool):
+        return 'T1' if current_tool == 'T0' else 'T0'
