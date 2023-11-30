@@ -7,7 +7,7 @@ class FileInput:
     def process_file(self):
         dir_name, file_name = os.path.split(self.file_path)
         name, _ = os.path.splitext(file_name)
-        new_file_name = f"{name}_veraendert.gcode"
+        new_file_name = f"{name}_nougat.gcode"
         new_file_path = os.path.join(dir_name, new_file_name)
 
         with open(self.file_path, 'r') as original_file, open(new_file_path, 'w') as new_file:
