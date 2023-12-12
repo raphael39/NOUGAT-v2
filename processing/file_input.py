@@ -9,7 +9,7 @@ class FileInput:
         self.start_x = 0
         self.start_y = 0
 
-    def process_file(self):
+    def process_file(self, selected_option):
         new_file_path = self.file_path.with_name(f"{self.file_path.stem}_nougat.gcode")
         current_tool = 'T0'
 
