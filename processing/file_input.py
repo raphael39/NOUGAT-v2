@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 import numpy as np
+from processing.reRoutingTravel import reRoutingTravel
+from processing.findOuterPoints import findOuterPoints
+
 
 class FileInput:
     def __init__(self, file_path):
@@ -9,25 +12,43 @@ class FileInput:
         self.start_x = 0
         self.start_y = 0
 
-    def process_file(self, selected_option):
+    def process_file(self, selected_option, verhältnis_A, verhältnis_B, numberRepitions, travelOutside):
         new_file_path = self.file_path.with_name(f"{self.file_path.stem}_nougat.gcode")
         current_tool = 'T0'
 
         with self.file_path.open('r') as original_file, new_file_path.open('w') as new_file:
             for line in original_file:
-                
 
                 if line.startswith(';LAYER:'):
-                    if line == ';LAYER:0\n' or line == ';LAYER:1\n' or line == ';LAYER:2\n':
-                        continue
-                    else : self.handle_layer_change(line, new_file, current_tool) 
+                    print(line)
+                    self.handle_layer_change(line, new_file, current_tool)
                     current_tool = 'T1' if current_tool == 'T0' else 'T0'
+
                 elif line.startswith('G1'):
                     ziel_x_y = self.extract_coordinates(line)
                     if ziel_x_y != (self.start_x, self.start_y):
                         f = self.calculate_fucntion(ziel_x_y)
                         self.mark_printed(f, ziel_x_y)
+
                 elif line.startswith('G0'):
+                    ziel_x_y = self.extract_coordinates(line)
+                    if noNeedNewTravel(self, ziel_x_y, self.printed_matrix):
+                        new_file.write(line)
+                        continue
+                    
+                    # Finden von Start und Ziel für den A* Algorithmus auserhalb des gedruckten Bereichs
+                    startCoordinates = findOuterPoints.findPointOnLimit(self.start_x, self.start_y, self.printed_matrix)
+                    endCoordinates = findOuterPoints.findPointOnLimit(ziel_x_y[0], ziel_x_y[1], self.printed_matrix)
+                    start_x_out = round(startCoordinates[0])
+                    start_y_out = round(startCoordinates[1])
+                    ziel_x_out = round(endCoordinates[0])
+                    ziel_y_out = round(endCoordinates[1])
+                    reRouting = reRoutingTravel((start_x_out, start_y_out), (ziel_x_out, ziel_y_out), self.printed_matrix)
+                    # reRouting = reRoutingTravel((round(self.start_x), round(self.start_y)), (round(ziel_x_y[0]), round(ziel_x_y[1])), self.printed_matrix)  
+                    newCommands = reRouting.findPathWithA()  # Aufrufen des A* Algorithmus für die Reiseroute
+                    
+                    for command in newCommands:
+                        new_file.write(f'G0 X{command[0]} Y{command[1]} F1800\n')
                     self.start_x, self.start_y = self.extract_coordinates(line)
                 new_file.write(line)
             
@@ -54,11 +75,13 @@ class FileInput:
         return 'T1' if current_tool == 'T0' else 'T0'
 
     def extract_coordinates(self, line):
+        line = line.replace('\t', ' ')
         coords = line.split(' ')
         x = self.start_x  # Standardwert, falls X nicht in der Zeile ist
         y = self.start_y  # Standardwert, falls Y nicht in der Zeile ist
 
         for coord in coords:
+
             if coord.startswith('X'):
                 x = float(coord[1:])
             elif coord.startswith('Y'):
@@ -90,7 +113,7 @@ class FileInput:
     
     
         
-    def mark_printed(self, f, ziel_x_y):
+    def mark_printed(self, line_function, ziel_x_y):
         x, y = ziel_x_y
         x = int(round(x))
         y = int(round(y))
@@ -109,10 +132,21 @@ class FileInput:
                 self.printed_matrix[x_koordinate][y] = True
         else:
             for x_koordinate in x_range:
-                y_koordinate = int(round(f(x_koordinate)))
+                y_koordinate = int(round(line_function(x_koordinate)))
                 if 0 <= y_koordinate < 200:
                     self.printed_matrix[x_koordinate][y_koordinate] = True
-
         self.start_x = x
         self.start_y = y
 
+def noNeedNewTravel(self, ziel_x_y, printed_matrix):
+    x, y = ziel_x_y
+    #euklidische distanz von start zu ziel
+    distance = ((x - self.start_x) ** 2 + (y - self.start_y) ** 2) ** 0.5
+    #wenn distanz kleiner als 10 ist, muss nicht neu gereist werden
+    if distance < 2:
+        return True
+    #Parkbefehl wird nicht beachtet
+    elif x < 0:
+        return True
+    else:
+        return False

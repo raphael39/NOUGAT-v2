@@ -11,66 +11,86 @@ class FilePicker(QWidget):
     def initUI(self):
         self.setWindowTitle('NOUGAT')
 
-        # Minimale und maximale Fenstergröße festlegen
-        self.setMinimumSize(400, 300)  # Mindestgröße auf 400x300 Pixel setzen
-        self.setMaximumSize(800, 600)  # Maximalgröße auf 800x600 Pixel setzen
+        
 
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        mainlayoutVB = QVBoxLayout()
+        self.setLayout(mainlayoutVB)
 
-         # Auswahlkästchen für die Typ des Modells (ComboBox) hinzufügen
-        self.comboBox = QComboBox(self)
-        self.comboBox.addItem("2 Schichten Modell")  # Erster Menüpunkt
-        self.comboBox.addItem("Vollschichten Modell")  # Zweiter Menüpunkt
-        layout.addWidget(self.comboBox)
-        self.comboBox.currentIndexChanged.connect(self.onComboBoxChanged)
+        ##### Auswahlkästchen für die Typ des Modells (ComboBox) hinzufügen
+        self.ModellMenü = QComboBox(self)
+        self.ModellMenü.addItem("2 Schichten Modell")  # Erster Menüpunkt
+        self.ModellMenü.addItem("Vollschichten Modell")  # Zweiter Menüpunkt
+        mainlayoutVB.addWidget(self.ModellMenü)
+        self.ModellMenü.currentIndexChanged.connect(self.onComboBoxChanged)
+
+        ##### Description for the ratio of alternating layers
+        self.LabelVerhätnis = QLabel("Verhältnis der abwechselnden Schichten", self)
+        mainlayoutVB.addWidget(self.LabelVerhätnis)
 
         #Textfelder für die Eingabe des Verhältnisses bei der Auswahl des 2 Schichten Modells hinzufügen
-        self.ratioLayout = QHBoxLayout()
+        self.verhältnisLayoutHB = QHBoxLayout()
         
-        self.ratioLineEdit1 = QLineEdit(self)
-        self.ratioLineEdit2 = QLineEdit(self)
-        self.ratioLabel = QLabel(":", self)
+        self.ratioLineA = QLineEdit(self)
+        self.ratioLineB = QLineEdit(self)
+        self.ratioColonLabel = QLabel(":", self)
 
-        self.ratioLayout.addWidget(self.ratioLineEdit1)
-        self.ratioLayout.addWidget(self.ratioLabel)
-        self.ratioLayout.addWidget(self.ratioLineEdit2)
+        self.verhältnisLayoutHB.addWidget(self.ratioLineA)
+        self.verhältnisLayoutHB.addWidget(self.ratioColonLabel)
+        self.verhältnisLayoutHB.addWidget(self.ratioLineB)
 
-        layout.addLayout(self.ratioLayout)
+        mainlayoutVB.addLayout(self.verhältnisLayoutHB)
 
-        #Radio Button für die Option der Reiseroute hinzufügen
-        self.radioButton1 = QRadioButton("Reiseroute nicht über das Bauteil", self)
-        layout.addWidget(self.radioButton1)
+        ##### Description for the number of repetitions
+        self.numberRepitionsLabel = QLabel("Anzahl Wiederholungen", self)
+        mainlayoutVB.addWidget(self.numberRepitionsLabel)
+        #Textfeld für die Eingabe der Wiederholungsanzahl
+        self.NumberRepitions = QLineEdit(self)
+        mainlayoutVB.addWidget(self.NumberRepitions)
+
+        ##### Radio Button für die Option der Reiseroute hinzufügen
+        self.radioButtonTravelOutside = QRadioButton("Reiseroute nicht über das Bauteil", self)
+        mainlayoutVB.addWidget(self.radioButtonTravelOutside)
 
         # Button zum Öffnen des Dateiauswahldialogs hinzufügen
         self.openButton = QPushButton('Datei auswählen', self)
         self.openButton.clicked.connect(self.showFileDialog)
-        layout.addWidget(self.openButton)
+        mainlayoutVB.addWidget(self.openButton)
 
         # Button zum Verarbeiten der Datei hinzufügen
         self.processButton = QPushButton('Datei verarbeiten', self)  # Neuer Button zum Verarbeiten
         self.processButton.clicked.connect(self.processFile)  # Verbinden des Buttons mit der Verarbeitungsmethode
-        layout.addWidget(self.processButton)
+        mainlayoutVB.addWidget(self.processButton)
 
         self.filePathLabel = QLabel(self)
-        layout.addWidget(self.filePathLabel)
+        mainlayoutVB.addWidget(self.filePathLabel)
 
         # Anfangsstatus der Textfelder (deaktiviert)
-        self.ratioLayout.itemAt(0).widget().show()
-        self.ratioLayout.itemAt(1).widget().show()
-        self.ratioLayout.itemAt(2).widget().show()
+        self.verhältnisLayoutHB.itemAt(0).widget().show()
+        self.verhältnisLayoutHB.itemAt(1).widget().show()
+        self.verhältnisLayoutHB.itemAt(2).widget().show()
 
     # Methode zum Anzeigen oder Verbergen der Textfelder basierend auf der Auswahl
     def onComboBoxChanged(self, index):
         # Zeigen oder Verbergen der Textfelder basierend auf der Auswahl
-        if self.comboBox.currentText() == "2 Schichten Modell":
-            self.ratioLayout.itemAt(0).widget().show()
-            self.ratioLayout.itemAt(1).widget().show()
-            self.ratioLayout.itemAt(2).widget().show()
+        if self.ModellMenü.currentText() == "2 Schichten Modell":
+            self.LabelVerhätnis.show()
+            self.verhältnisLayoutHB.itemAt(0).widget().show()
+            self.verhältnisLayoutHB.itemAt(1).widget().show()
+            self.verhältnisLayoutHB.itemAt(2).widget().show()
+            self.numberRepitionsLabel.show()
+            self.NumberRepitions.show()
+        elif self.ModellMenü.currentText() == "Vollschichten Modell":
+            self.LabelVerhätnis.show()
+            self.verhältnisLayoutHB.itemAt(0).widget().show()
+            self.verhältnisLayoutHB.itemAt(1).widget().show()
+            self.verhältnisLayoutHB.itemAt(2).widget().show()
+            self.numberRepitionsLabel.hide()
+            self.NumberRepitions.hide()       
         else:
-            self.ratioLayout.itemAt(0).widget().hide()
-            self.ratioLayout.itemAt(1).widget().hide()
-            self.ratioLayout.itemAt(2).widget().hide()
+            self.LabelVerhätnis.hide()
+            self.verhältnisLayoutHB.itemAt(0).widget().hide()
+            self.verhältnisLayoutHB.itemAt(1).widget().hide()
+            self.verhältnisLayoutHB.itemAt(2).widget().hide()
 
     # Methode zum Öffnen des Dateiauswahldialogs
     def showFileDialog(self):
@@ -85,9 +105,13 @@ class FilePicker(QWidget):
     # Methode zum Verarbeiten der Datei mit der FileInput Klasse
     def processFile(self):
         if self.selected_file_path:
-            selected_Option = self.comboBox.currentText()
+            modell_Option = self.ModellMenü.currentText()
+            verhältnis_A = self.ratioLineA.text()
+            verhältnis_B = self.ratioLineB.text()
+            numberRepitions = self.NumberRepitions.text()
+            travelOutside = self.radioButtonTravelOutside.isChecked()
             file_processor = FileInput(self.selected_file_path)  # Erstellen einer Instanz von FileInput
-            file_processor.process_file(selected_Option)  # Aufrufen der Verarbeitungsmethode
+            file_processor.process_file(modell_Option, verhältnis_A, verhältnis_B, numberRepitions, travelOutside )  # Aufrufen der Verarbeitungsmethode mit den ausgewählten Optionen
         else:
             print("Keine Datei ausgewählt")
 
