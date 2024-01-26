@@ -1,7 +1,9 @@
 import sys
 from PyQt6.QtWidgets import QRadioButton, QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QComboBox, QLineEdit, QHBoxLayout
+from PyQt6.QtWidgets import QGroupBox
+import PyQt6.QtCore as QtCore
+import processOptions
 from processing.file_input import FileInput  # Importieren der FileInput Klasse
-
 class FilePicker(QWidget):
     def __init__(self):
         super().__init__()
@@ -10,64 +12,128 @@ class FilePicker(QWidget):
 
     def initUI(self):
         self.setWindowTitle('NOUGAT')
-
-        
-
         mainlayoutVB = QVBoxLayout()
         self.setLayout(mainlayoutVB)
 
-        ##### Auswahlkästchen für die Typ des Modells (ComboBox) hinzufügen
-        self.ModellMenü = QComboBox(self)
-        self.ModellMenü.addItem("2 Schichten Modell")  # Erster Menüpunkt
-        self.ModellMenü.addItem("Vollschichten Modell")  # Zweiter Menüpunkt
-        mainlayoutVB.addWidget(self.ModellMenü)
-        self.ModellMenü.currentIndexChanged.connect(self.onComboBoxChanged)
-
-        ##### Description for the ratio of alternating layers
-        self.LabelVerhätnis = QLabel("Verhältnis der abwechselnden Schichten", self)
-        mainlayoutVB.addWidget(self.LabelVerhätnis)
-
-        #Textfelder für die Eingabe des Verhältnisses bei der Auswahl des 2 Schichten Modells hinzufügen
-        self.verhältnisLayoutHB = QHBoxLayout()
+        self.initSchichtwechselGroup()
+        self.initReiserouteGroup()
+        self.initGradientenGroup()
+        self.initDateiauswahlGroup()
         
-        self.ratioLineA = QLineEdit(self)
-        self.ratioLineB = QLineEdit(self)
-        self.ratioColonLabel = QLabel(":", self)
+        # Hinzufügen der Gruppen zur Hauptlayout
+        mainlayoutVB.addWidget(self.groupSchichtwechsel)
+        mainlayoutVB.addWidget(self.groupReiseroute)
+        mainlayoutVB.addWidget(self.groupGradienten)
+        # Hinzufügen der Buttons zur Hauptlayout
+        mainlayoutVB.addWidget(self.openButton)
+        mainlayoutVB.addWidget(self.processButton)
+        mainlayoutVB.addWidget(self.filePathLabel)
 
+    # Methode zum Initialisieren der Schichtwechsel-Gruppe
+    def initSchichtwechselGroup(self):
+        self.groupSchichtwechsel = QGroupBox("Schichtwechsel", self)
+        layoutSchichtwechsel = QVBoxLayout()
+        self.groupSchichtwechsel.setLayout(layoutSchichtwechsel)
+
+        # RadioButton für die Option des Schichtwechsels
+        self.radioButtonSchichtwechsel = QRadioButton("Schichtwechsel aktivieren", self)
+        layoutSchichtwechsel.addWidget(self.radioButtonSchichtwechsel)
+
+        # ComboBox für das Modell
+        self.ModellMenü = QComboBox(self)
+        self.ModellMenü.addItem("2 Schichten Modell")
+        self.ModellMenü.addItem("Vollschichten Modell")
+        self.ModellMenü.currentIndexChanged.connect(self.onComboBoxChanged)
+        layoutSchichtwechsel.addWidget(self.ModellMenü)
+
+        # Label und Textfelder für das Verhältnis der abwechselnden Schichten
+        self.LabelVerhätnis = QLabel("Verhältnis der abwechselnden Schichten", self)
+        layoutSchichtwechsel.addWidget(self.LabelVerhätnis)
+    
+        self.verhältnisLayoutHB = QHBoxLayout()
+        self.ratioLineA = QLineEdit(self)
+        self.ratioLineA.setPlaceholderText("1")
+        self.ratioLineB = QLineEdit(self)
+        self.ratioLineB.setPlaceholderText("3")
+        self.ratioColonLabel = QLabel(":", self)
         self.verhältnisLayoutHB.addWidget(self.ratioLineA)
         self.verhältnisLayoutHB.addWidget(self.ratioColonLabel)
         self.verhältnisLayoutHB.addWidget(self.ratioLineB)
+        layoutSchichtwechsel.addLayout(self.verhältnisLayoutHB)
 
-        mainlayoutVB.addLayout(self.verhältnisLayoutHB)
-
-        ##### Description for the number of repetitions
+        # Label und Textfeld für die Anzahl der Wiederholungen
         self.numberRepitionsLabel = QLabel("Anzahl Wiederholungen", self)
-        mainlayoutVB.addWidget(self.numberRepitionsLabel)
-        #Textfeld für die Eingabe der Wiederholungsanzahl
+        layoutSchichtwechsel.addWidget(self.numberRepitionsLabel)
         self.NumberRepitions = QLineEdit(self)
-        mainlayoutVB.addWidget(self.NumberRepitions)
+        self.NumberRepitions.setPlaceholderText("125")
+        layoutSchichtwechsel.addWidget(self.NumberRepitions)
+    
+    # Methode zum Initialisieren der Reiseroute-Gruppe
+    def initReiserouteGroup(self):
+        self.groupReiseroute = QGroupBox("Reiseroute", self)
+        layoutReiseroute = QVBoxLayout()
+        self.groupReiseroute.setLayout(layoutReiseroute)
 
-        ##### Radio Button für die Option der Reiseroute hinzufügen
+        # RadioButton für die Option der Reiseroute
         self.radioButtonTravelOutside = QRadioButton("Reiseroute nicht über das Bauteil", self)
-        mainlayoutVB.addWidget(self.radioButtonTravelOutside)
+        layoutReiseroute.addWidget(self.radioButtonTravelOutside)
 
-        # Button zum Öffnen des Dateiauswahldialogs hinzufügen
+    # Methode zum Initialisieren der Gradienten-Gruppe
+    def initGradientenGroup(self):
+        self.groupGradienten = QGroupBox("Gradienten", self)
+        layoutGradienten = QVBoxLayout()
+        self.groupGradienten.setLayout(layoutGradienten)
+
+        # RadioButton für die Option der Gradienten
+        self.radioButtonGradienten = QRadioButton("Gradienten aktivieren", self)
+        layoutGradienten.addWidget(self.radioButtonGradienten)
+
+        # Label und Textfelder für die Gradientengrundflächen
+        self.gradientenLabel = QLabel("Gradientengrundflächen von zu findender Höhe zu platzierender Höhe", self)
+        layoutGradienten.addWidget(self.gradientenLabel)
+    
+        self.gradientenGrundlächeLayoutHB = QHBoxLayout()
+        self.gradientenGrundFlächeFindenLabel = QLabel("Finden:", self)
+        self.gradientenFlächeFinden = QLineEdit(self)
+        self.gradientenFlächeFinden.setPlaceholderText("z.B. Höhe 1600mm ")
+        self.gradientenGrundflächePlatzierenLabel = QLabel("Platzieren:", self)
+        self.gradientenFlächeZiel = QLineEdit(self)
+        self.gradientenFlächeZiel.setPlaceholderText("z.B. startend bei Höhe 200mm ")
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenGrundFlächeFindenLabel)
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenFlächeFinden)
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenGrundflächePlatzierenLabel)
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenFlächeZiel)
+        layoutGradienten.addLayout(self.gradientenGrundlächeLayoutHB)
+
+        # Label und Textfelder für die Gradientenanfangs- und -endhöhe
+        self.gradientenStartLabel = QLabel("Gradientenanfangshöhe und -endhöhe", self)
+        layoutGradienten.addWidget(self.gradientenStartLabel)
+    
+        self.gradientenStartEndLayoutHB = QHBoxLayout()
+        self.gradientenStartHöhe = QLineEdit(self)
+        self.gradientenStartHöhe.setPlaceholderText("z.B. 50µm Schichthöhe")
+        self.gradientenStartHöheLabel = QLabel("µm", self)
+        self.gradientenEndHöhe = QLineEdit(self)
+        self.gradientenEndHöhe.setPlaceholderText("z.B. bis auf 200µm Schichthöhe")
+        self.gradientenEndHöheLabel = QLabel("µm", self)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenStartHöhe)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenStartHöheLabel)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenEndHöhe)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenEndHöheLabel)
+        layoutGradienten.addLayout(self.gradientenStartEndLayoutHB)
+
+    # Methode zum Initialisieren der Dateiauswahl-Gruppe
+    def initDateiauswahlGroup(self):
+        # Button zum Öffnen des Dateiauswahldialogs
         self.openButton = QPushButton('Datei auswählen', self)
         self.openButton.clicked.connect(self.showFileDialog)
-        mainlayoutVB.addWidget(self.openButton)
-
-        # Button zum Verarbeiten der Datei hinzufügen
-        self.processButton = QPushButton('Datei verarbeiten', self)  # Neuer Button zum Verarbeiten
-        self.processButton.clicked.connect(self.processFile)  # Verbinden des Buttons mit der Verarbeitungsmethode
-        mainlayoutVB.addWidget(self.processButton)
-
+    
+        # Button zum Verarbeiten der Datei
+        self.processButton = QPushButton('Datei verarbeiten', self)
+        self.processButton.clicked.connect(self.processFile)
+    
+        # Label für den Pfad der ausgewählten Datei
         self.filePathLabel = QLabel(self)
-        mainlayoutVB.addWidget(self.filePathLabel)
-
-        # Anfangsstatus der Textfelder (deaktiviert)
-        self.verhältnisLayoutHB.itemAt(0).widget().show()
-        self.verhältnisLayoutHB.itemAt(1).widget().show()
-        self.verhältnisLayoutHB.itemAt(2).widget().show()
 
     # Methode zum Anzeigen oder Verbergen der Textfelder basierend auf der Auswahl
     def onComboBoxChanged(self, index):
@@ -105,15 +171,29 @@ class FilePicker(QWidget):
     # Methode zum Verarbeiten der Datei mit der FileInput Klasse
     def processFile(self):
         if self.selected_file_path:
-            modell_Option = self.ModellMenü.currentText()
-            verhältnis_A = self.ratioLineA.text()
-            verhältnis_B = self.ratioLineB.text()
-            numberRepitions = self.NumberRepitions.text()
-            travelOutside = self.radioButtonTravelOutside.isChecked()
-            file_processor = FileInput(self.selected_file_path)  # Erstellen einer Instanz von FileInput
-            file_processor.process_file(modell_Option, verhältnis_A, verhältnis_B, numberRepitions, travelOutside )  # Aufrufen der Verarbeitungsmethode mit den ausgewählten Optionen
+            try:
+                options = processOptions(
+                    schichtwechsel=self.radioButtonSchichtwechsel.isChecked(),
+                    modell_Option=self.ModellMenü.currentText(),
+                    verhältnis_A=float(self.ratioLineA.text()),
+                    verhältnis_B=float(self.ratioLineB.text()),
+                    numberRepitions=int(self.NumberRepitions.text()),
+                    travelOutside=self.radioButtonTravelOutside.isChecked(),
+                    gradienten=self.radioButtonGradienten.isChecked(),
+                    gradientenFlächeFinden=float(self.gradientenFlächeFinden.text()),
+                    gradientenFlächeZiel=float(self.gradientenFlächeZiel.text()),
+                    gradientenStartHöhe=float(self.gradientenStartHöhe.text()),
+                    gradientenEndHöhe=float(self.gradientenEndHöhe.text())
+                )
+            except ValueError as e:
+                print(f"Ungültige Eingabe: {e}")
+                return  # Frühzeitiger Rückkehr bei fehlerhafter Eingabe
+
+            file_processor = FileInput(self.selected_file_path)
+            file_processor.process_file(options)
         else:
             print("Keine Datei ausgewählt")
+
 
 # Methode zum Starten der Anwendung
 def main():

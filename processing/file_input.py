@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from processing.reRoutingTravel import reRoutingTravel
 from processing.findOuterPoints import findOuterPoints
-
+from .. import processOptions
 
 class FileInput:
     def __init__(self, file_path):
@@ -12,19 +12,31 @@ class FileInput:
         self.start_x = 0
         self.start_y = 0
 
-    def process_file(self, selected_option, verhältnis_A, verhältnis_B, numberRepitions, travelOutside):
+    def process_file(self, options: processOptions):
+        # Optionen auslesen
+        schichwechsel = options.schichwechsel
+        modell_Option = options.modell_Option
+        verhältnis_A = options.verhältnis_A
+        verhältnis_B = options.verhältnis_B
+        numberRepitions = options.numberRepitions
+        travelOutside = options.travelOutside
+        gradienten = options.gradienten
+        gradientenFlächeFinden = options.gradientenFlächeFinden
+        gradientenFlächeZiel = options.gradientenFlächeZiel
+        gradientenStartHöhe = options.gradientenStartHöhe
+        gradientenEndHöhe = options.gradientenEndHöhe
         new_file_path = self.file_path.with_name(f"{self.file_path.stem}_nougat.gcode")
         current_tool = 'T0'
 
         with self.file_path.open('r') as original_file, new_file_path.open('w') as new_file:
             for line in original_file:
 
-                if line.startswith(';LAYER:'):
-                    print(line)
-                    self.handle_layer_change(line, new_file, current_tool)
-                    current_tool = 'T1' if current_tool == 'T0' else 'T0'
+                ##if line.startswith(';LAYER:'):
+                    ##print(line)
+                    ##self.handle_layer_change(line, new_file, current_tool)
+                    ##current_tool = 'T1' if current_tool == 'T0' else 'T0'
 
-                elif line.startswith('G1'):
+                if line.startswith('G1'):
                     ziel_x_y = self.extract_coordinates(line)
                     if ziel_x_y != (self.start_x, self.start_y):
                         f = self.calculate_fucntion(ziel_x_y)
@@ -55,10 +67,6 @@ class FileInput:
 
         print(f"Datei verarbeitet und gespeichert als: {new_file_path}")
         print(f"Bedruckte Matrix: \n{self.printed_matrix}")
-        # Speichern des Arrays mit booleschen Werten in einer Datei
-        # Speichern des Arrays in einer Datei
-        with open('array_output.txt', 'w') as f:
-            np.savetxt(f, self.printed_matrix, fmt='%d')
 
 
 
