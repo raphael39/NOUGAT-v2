@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class processOptions:
+class ProcessOptions:
     schichtwechsel: bool
     modell_Option: str
     verhältnis_A: int
@@ -9,7 +9,7 @@ class processOptions:
     numberRepitions: int
     travelOutside: bool
     gradienten: bool
-    gradientenFlächeFinden: int
-    gradientenFlächeZiel: int
-    gradientenStartHöhe: int
-    gradientenEndHöhe: int
+    gradientGrundflächeLayer: int
+    gradientStartHöhe: int
+    gradientenLineStartHöhe: int
+    gradientenLineEndHöhe: int

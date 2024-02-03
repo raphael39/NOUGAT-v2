@@ -2,8 +2,11 @@ import sys
 from PyQt6.QtWidgets import QRadioButton, QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QComboBox, QLineEdit, QHBoxLayout
 from PyQt6.QtWidgets import QGroupBox
 import PyQt6.QtCore as QtCore
-import processOptions
-from processing.file_input import FileInput  # Importieren der FileInput Klasse
+from processOptions import ProcessOptions
+from processing.myFileReader import myFileReader
+
+
+
 class FilePicker(QWidget):
     def __init__(self):
         super().__init__()
@@ -29,6 +32,14 @@ class FilePicker(QWidget):
         mainlayoutVB.addWidget(self.processButton)
         mainlayoutVB.addWidget(self.filePathLabel)
 
+    # Methode zum Aktivieren/Deaktivieren der Schichtwechsel-Option
+    def on_radioButtonSchichtwechsel_toggled(self, checked):
+        self.ModellMenü.setEnabled(checked)
+        self.onComboBoxChanged(self.ModellMenü.currentIndex())
+        self.ratioLineA.setEnabled(checked)
+        self.ratioLineB.setEnabled(checked)
+        self.NumberRepitions.setEnabled(checked)
+
     # Methode zum Initialisieren der Schichtwechsel-Gruppe
     def initSchichtwechselGroup(self):
         self.groupSchichtwechsel = QGroupBox("Schichtwechsel", self)
@@ -38,6 +49,7 @@ class FilePicker(QWidget):
         # RadioButton für die Option des Schichtwechsels
         self.radioButtonSchichtwechsel = QRadioButton("Schichtwechsel aktivieren", self)
         layoutSchichtwechsel.addWidget(self.radioButtonSchichtwechsel)
+        self.radioButtonSchichtwechsel.toggled.connect(self.on_radioButtonSchichtwechsel_toggled)
 
         # ComboBox für das Modell
         self.ModellMenü = QComboBox(self)
@@ -67,6 +79,8 @@ class FilePicker(QWidget):
         self.NumberRepitions = QLineEdit(self)
         self.NumberRepitions.setPlaceholderText("125")
         layoutSchichtwechsel.addWidget(self.NumberRepitions)
+
+        self.on_radioButtonSchichtwechsel_toggled(self.radioButtonSchichtwechsel.isChecked())
     
     # Methode zum Initialisieren der Reiseroute-Gruppe
     def initReiserouteGroup(self):
@@ -78,6 +92,13 @@ class FilePicker(QWidget):
         self.radioButtonTravelOutside = QRadioButton("Reiseroute nicht über das Bauteil", self)
         layoutReiseroute.addWidget(self.radioButtonTravelOutside)
 
+    # Methode aktiviert/deaktiviert die Gradienten-Option  
+    def on_radioButtonGradienten_toggled(self, checked):
+        self.gradientenGrundflächeLayer.setEnabled(checked)
+        self.gradientStartHöhe.setEnabled(checked)
+        self.gradientenLineStartHöhe.setEnabled(checked)
+        self.gradientenLineEndHöhe.setEnabled(checked)
+    
     # Methode zum Initialisieren der Gradienten-Gruppe
     def initGradientenGroup(self):
         self.groupGradienten = QGroupBox("Gradienten", self)
@@ -87,22 +108,23 @@ class FilePicker(QWidget):
         # RadioButton für die Option der Gradienten
         self.radioButtonGradienten = QRadioButton("Gradienten aktivieren", self)
         layoutGradienten.addWidget(self.radioButtonGradienten)
+        self.radioButtonGradienten.toggled.connect(self.on_radioButtonGradienten_toggled)
 
         # Label und Textfelder für die Gradientengrundflächen
-        self.gradientenLabel = QLabel("Gradientengrundflächen von zu findender Höhe zu platzierender Höhe", self)
+        self.gradientenLabel = QLabel("Gradientengrundflächen von zu findendem Layer zu platzierender StartHöhe", self)
         layoutGradienten.addWidget(self.gradientenLabel)
     
         self.gradientenGrundlächeLayoutHB = QHBoxLayout()
         self.gradientenGrundFlächeFindenLabel = QLabel("Finden:", self)
-        self.gradientenFlächeFinden = QLineEdit(self)
-        self.gradientenFlächeFinden.setPlaceholderText("z.B. Höhe 1600mm ")
+        self.gradientenGrundflächeLayer = QLineEdit(self)
+        self.gradientenGrundflächeLayer.setPlaceholderText("z.B. Layer 250 ")
         self.gradientenGrundflächePlatzierenLabel = QLabel("Platzieren:", self)
-        self.gradientenFlächeZiel = QLineEdit(self)
-        self.gradientenFlächeZiel.setPlaceholderText("z.B. startend bei Höhe 200mm ")
+        self.gradientStartHöhe = QLineEdit(self)
+        self.gradientStartHöhe.setPlaceholderText("auf Höhe 0.390mm ")
         self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenGrundFlächeFindenLabel)
-        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenFlächeFinden)
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenGrundflächeLayer)
         self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenGrundflächePlatzierenLabel)
-        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientenFlächeZiel)
+        self.gradientenGrundlächeLayoutHB.addWidget(self.gradientStartHöhe)
         layoutGradienten.addLayout(self.gradientenGrundlächeLayoutHB)
 
         # Label und Textfelder für die Gradientenanfangs- und -endhöhe
@@ -110,17 +132,19 @@ class FilePicker(QWidget):
         layoutGradienten.addWidget(self.gradientenStartLabel)
     
         self.gradientenStartEndLayoutHB = QHBoxLayout()
-        self.gradientenStartHöhe = QLineEdit(self)
-        self.gradientenStartHöhe.setPlaceholderText("z.B. 50µm Schichthöhe")
-        self.gradientenStartHöheLabel = QLabel("µm", self)
-        self.gradientenEndHöhe = QLineEdit(self)
-        self.gradientenEndHöhe.setPlaceholderText("z.B. bis auf 200µm Schichthöhe")
-        self.gradientenEndHöheLabel = QLabel("µm", self)
-        self.gradientenStartEndLayoutHB.addWidget(self.gradientenStartHöhe)
-        self.gradientenStartEndLayoutHB.addWidget(self.gradientenStartHöheLabel)
-        self.gradientenStartEndLayoutHB.addWidget(self.gradientenEndHöhe)
-        self.gradientenStartEndLayoutHB.addWidget(self.gradientenEndHöheLabel)
+        self.gradientenLineStartHöhe = QLineEdit(self)
+        self.gradientenLineStartHöhe.setPlaceholderText("z.B. 0.05mm Schichthöhe")
+        self.gradientenLineStartHöheLabel = QLabel("mm", self)
+        self.gradientenLineEndHöhe = QLineEdit(self)
+        self.gradientenLineEndHöhe.setPlaceholderText("z.B. bis auf 0.2mm Schichthöhe")
+        self.gradientenLineEndHöheLabel = QLabel("mm", self)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineStartHöhe)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineStartHöheLabel)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineEndHöhe)
+        self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineEndHöheLabel)
         layoutGradienten.addLayout(self.gradientenStartEndLayoutHB)
+
+        self.on_radioButtonGradienten_toggled(self.radioButtonGradienten.isChecked())
 
     # Methode zum Initialisieren der Dateiauswahl-Gruppe
     def initDateiauswahlGroup(self):
@@ -168,28 +192,35 @@ class FilePicker(QWidget):
         except Exception as e:
             print(f"Fehler beim Öffnen des Dialogs: {e}")
 
+    # Methode zum Konvertieren eines Strings in einen Float
+    def get_float_from_text(self, text, default_value=0.0):
+        try:
+            return float(text)
+        except ValueError:
+            return default_value
+        
     # Methode zum Verarbeiten der Datei mit der FileInput Klasse
     def processFile(self):
         if self.selected_file_path:
             try:
-                options = processOptions(
+                options = ProcessOptions(
                     schichtwechsel=self.radioButtonSchichtwechsel.isChecked(),
                     modell_Option=self.ModellMenü.currentText(),
-                    verhältnis_A=float(self.ratioLineA.text()),
-                    verhältnis_B=float(self.ratioLineB.text()),
-                    numberRepitions=int(self.NumberRepitions.text()),
+                    verhältnis_A=self.get_float_from_text(self.ratioLineA.text()),
+                    verhältnis_B=self.get_float_from_text(self.ratioLineB.text()),
+                    numberRepitions=int(self.NumberRepitions.text()) if self.NumberRepitions.text().isdigit() else 0,
                     travelOutside=self.radioButtonTravelOutside.isChecked(),
                     gradienten=self.radioButtonGradienten.isChecked(),
-                    gradientenFlächeFinden=float(self.gradientenFlächeFinden.text()),
-                    gradientenFlächeZiel=float(self.gradientenFlächeZiel.text()),
-                    gradientenStartHöhe=float(self.gradientenStartHöhe.text()),
-                    gradientenEndHöhe=float(self.gradientenEndHöhe.text())
+                    gradientGrundflächeLayer=self.get_float_from_text(self.gradientenGrundflächeLayer.text()),
+                    gradientStartHöhe=self.get_float_from_text(self.gradientStartHöhe.text()),
+                    gradientenLineStartHöhe=self.get_float_from_text(self.gradientenLineStartHöhe.text()),
+                    gradientenLineEndHöhe=self.get_float_from_text(self.gradientenLineEndHöhe.text())
                 )
             except ValueError as e:
                 print(f"Ungültige Eingabe: {e}")
                 return  # Frühzeitiger Rückkehr bei fehlerhafter Eingabe
 
-            file_processor = FileInput(self.selected_file_path)
+            file_processor = myFileReader(self.selected_file_path)
             file_processor.process_file(options)
         else:
             print("Keine Datei ausgewählt")
@@ -201,6 +232,7 @@ def main():
     ex = FilePicker()
     ex.show()
     sys.exit(app.exec())
+
 
 # Starten der Anwendung mit der main Methode als Einstiegspunkt
 if __name__ == '__main__':
