@@ -13,3 +13,6 @@ class ProcessOptions:
     gradientStartHöhe: int
     gradientenLineStartHöhe: int
     gradientenLineEndHöhe: int
+    gradientenFlowRate: int
+    gradientenFlowRateFactor: int
+    gradientenLayers: int

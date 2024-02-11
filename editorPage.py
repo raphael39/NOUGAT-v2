@@ -98,7 +98,10 @@ class FilePicker(QWidget):
         self.gradientStartHöhe.setEnabled(checked)
         self.gradientenLineStartHöhe.setEnabled(checked)
         self.gradientenLineEndHöhe.setEnabled(checked)
-    
+        self.gradientenFlowRate.setEnabled(checked)
+        self.gradientenFlowRateFactor.setEnabled(checked)
+        self.gradientenAnzahl.setEnabled(checked)
+
     # Methode zum Initialisieren der Gradienten-Gruppe
     def initGradientenGroup(self):
         self.groupGradienten = QGroupBox("Gradienten", self)
@@ -143,6 +146,29 @@ class FilePicker(QWidget):
         self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineEndHöhe)
         self.gradientenStartEndLayoutHB.addWidget(self.gradientenLineEndHöheLabel)
         layoutGradienten.addLayout(self.gradientenStartEndLayoutHB)
+
+        self.gradientenFlowRateLayoutHB = QHBoxLayout()
+        self.gradientenFlowRateLabel = QLabel("Gradientenflowrate", self)
+        self.gradientenFlowRate = QLineEdit(self)
+        self.gradientenFlowRate.setPlaceholderText("z.B. 120%")
+        self.gradientenFlowRateFactorLabel = QLabel("GradientdescendingFactor", self)
+        self.gradientenFlowRateFactor = QLineEdit(self)
+        self.gradientenFlowRateFactor.setPlaceholderText("z.B 0.9")
+        self.gradientenFlowRateLayoutHB.addWidget(self.gradientenFlowRateLabel)
+        self.gradientenFlowRateLayoutHB.addWidget(self.gradientenFlowRate)
+        self.gradientenFlowRateLayoutHB.addWidget(self.gradientenFlowRateFactorLabel)
+        self.gradientenFlowRateLayoutHB.addWidget(self.gradientenFlowRateFactor)
+        layoutGradienten.addLayout(self.gradientenFlowRateLayoutHB)
+
+        self.gradientenAnzahlLayoutHB = QHBoxLayout()
+        self.gradientenAnzahlLabel = QLabel("Anzahl der Gradienten", self)
+        self.gradientenAnzahl = QLineEdit(self)
+        self.gradientenAnzahl.setPlaceholderText("z.B. 5")
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenAnzahlLabel)
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenAnzahl)
+        layoutGradienten.addLayout(self.gradientenAnzahlLayoutHB)
+
+
 
         self.on_radioButtonGradienten_toggled(self.radioButtonGradienten.isChecked())
 
@@ -214,7 +240,10 @@ class FilePicker(QWidget):
                     gradientGrundflächeLayer=self.get_float_from_text(self.gradientenGrundflächeLayer.text()),
                     gradientStartHöhe=self.get_float_from_text(self.gradientStartHöhe.text()),
                     gradientenLineStartHöhe=self.get_float_from_text(self.gradientenLineStartHöhe.text()),
-                    gradientenLineEndHöhe=self.get_float_from_text(self.gradientenLineEndHöhe.text())
+                    gradientenLineEndHöhe=self.get_float_from_text(self.gradientenLineEndHöhe.text()),
+                    gradientenFlowRate=self.get_float_from_text(self.gradientenFlowRate.text()),
+                    gradientenFlowRateFactor=self.get_float_from_text(self.gradientenFlowRateFactor.text()),
+                    gradientenLayers=int(self.get_float_from_text(self.gradientenAnzahl.text()))
                 )
             except ValueError as e:
                 print(f"Ungültige Eingabe: {e}")
@@ -224,7 +253,6 @@ class FilePicker(QWidget):
             file_processor.process_file(options)
         else:
             print("Keine Datei ausgewählt")
-
 
 # Methode zum Starten der Anwendung
 def main():

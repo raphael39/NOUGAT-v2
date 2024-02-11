@@ -33,6 +33,9 @@ class myFileReader:
         gradientStartHöhe = options.gradientStartHöhe
         gradientenLineStartHöhe = options.gradientenLineStartHöhe
         gradientenLineEndHöhe = options.gradientenLineEndHöhe
+        gradientenFlowRate = options.gradientenFlowRate
+        gradientenFlowRateFactor = options.gradientenFlowRateFactor
+        gradientenLayers = options.gradientenLayers
         new_file_path = self.file_path.with_name(f"{self.file_path.stem}_nougat.gcode")
 
         with self.file_path.open('r') as original_file, new_file_path.open('w') as new_file:
@@ -40,12 +43,11 @@ class myFileReader:
             for line in original_file:
                 if line.startswith(';LAYER:'):
                     if schichtwechsel:
-                        self.handle_layer_change(line, new_file, self.current_tool)
+                        self.handle_layer_change(line, new_file)
                     if gradienten and int(line[7:]) >= gradientGrundflächeLayer:
                         self.boolGradientCollectCircumference = True
                 if line.startswith('G1'):
                     self.mark_printed(line)
-                    self.updateExtrusion(line)
                     if self.boolGradientCollectCircumference:
                         self.createGradientCircumference(line)
                 if line.startswith('G0'):
@@ -70,7 +72,7 @@ class myFileReader:
                     if self.boolGradientCollectCircumference:
                         self.boolGradientCollectCircumference = False
                         self.boolGradientLayerToSkip = True
-                        self.createGradient(new_file, gradientStartHöhe, gradientenLineStartHöhe, gradientenLineEndHöhe)
+                        self.createGradient(new_file, gradientStartHöhe, gradientenLineStartHöhe, gradientenLineEndHöhe, gradientenFlowRate, gradientenFlowRateFactor, gradientenLayers)
                 if line.startswith("T0") or line.startswith("T1"):
                     self.current_tool = line
                 if self.line_contains_coordinates(line):
@@ -197,7 +199,7 @@ class myFileReader:
         self.gradientOuterLinedict[self.gradientlevel].append(new_object)
         print(new_object)
     
-    def createGradient(self, new_file, gradientStartHöhe, gradientenLineStartHöhe, gradientenLineEndHöhe):
+    def createGradient(self, new_file, gradientStartHöhe, gradientenLineStartHöhe, gradientenLineEndHöhe, gradientenFlowRate, gradientenFlowRateFactor, gradientenLayers):
         # Finde die linkere untere Ecke im dict für key = 0
         lowest_x, lowest_y = self.findLowestXandY(self.gradientOuterLinedict[0])
 
@@ -207,30 +209,38 @@ class myFileReader:
         endLine = self.findEndLine(self.gradientOuterLinedict[0], lowest_x, lowest_y)
 
         # Die Travelline ist die längere der beiden Linien und die andere ist die offsetline
+        zSteps = (gradientenLineEndHöhe - gradientenLineStartHöhe) / 0.01
         travelLine = startLine if startLine["distance"] > endLine["distance"] else endLine
         offsetLine = startLine if startLine["distance"] < endLine["distance"] else endLine
         travelVector = (travelLine["ziel_x"] - travelLine["start_x"], travelLine["ziel_y"] - travelLine["start_y"])
-        travelVectorLength = (travelVector[0] ** 2 + travelVector[1] ** 2) ** 0.5
-        travelVectornormiert = (travelVector[0] / travelVectorLength, travelVector[1] / travelVectorLength)
+        travelVectorZStep = (travelVector[0] / zSteps, travelVector[1] / zSteps, 0.01)
+        travelVectorLengthXY = (travelVector[0] ** 2 + travelVector[1] ** 2) ** 0.5
+        travelVectornormiert = (travelVector[0] / travelVectorLengthXY, travelVector[1] / travelVectorLengthXY)
         offsetVector = (abs(offsetLine["ziel_x"] - offsetLine["start_x"]), abs(offsetLine["ziel_y"] - offsetLine["start_y"]))
         offsetVectorLength = (offsetVector[0] ** 2 + offsetVector[1] ** 2) ** 0.5
         offsetVectornormiert = (offsetVector[0] / offsetVectorLength, offsetVector[1] / offsetVectorLength)
+        # todo offset muss immer 0.4 sein von der letzen linie
         offsetVectorStep = (offsetVectornormiert[0] * 0.4, offsetVectornormiert[1] * 0.4)
 
-        extrusionPerLine = travelVectorLength * 0.4 * gradientenLineStartHöhe
+        for j in range (1, gradientenLayers + 1):
 
-        neededLines = offsetVectorLength / 0.4
-        new_file.write(f'G0 X{travelLine["start_x"]} Y{travelLine["start_y"]} \n')
-        new_file.write(f'G92 E0 \n')
-        self.currentExtrusionT0 = 0
-        new_file.write(f'G0 Z{gradientStartHöhe + gradientenLineStartHöhe} \n')
-        new_file.write(";Gradienten" "\n")
-        for i in range(int(neededLines)):
-            new_file.write(f'G0 X{lowest_x + (i * offsetVectorStep[0])} Y{lowest_y + (i * offsetVectorStep[1])} \n')
-            new_file.write(f'G1 X{lowest_x + (i * offsetVectorStep[0]) + travelVector[0]} Y{lowest_y + (i * offsetVectorStep[1]) + travelVector[1]} E{self.currentExtrusionT0 + extrusionPerLine} \n')
-            #line_x_start, line_y_start = lowest_x + (i * offsetVectorStep[0]), lowest_y + (i * offsetVectorStep[1])
-            #self.createGradientLine(new_file, (line_x_start, line_y_start), travelVector, travelVectornormiert, gradientenLineStartHöhe, gradientenLineEndHöhe)
-            self.currentExtrusionT0 += extrusionPerLine
+            neededLines = offsetVectorLength / 0.4
+            new_file.write(f'G0 X{travelLine["start_x"]} Y{travelLine["start_y"]} \n')
+            new_file.write(f'G92 E0 \n')
+            self.currentExtrusionT0 = 0
+            layerStartHeight = gradientStartHöhe + gradientenLineStartHöhe * j
+            new_file.write(f'G0 Z{layerStartHeight} \n')
+            new_file.write(";Gradienten" "\n")
+
+            for i in range(int(neededLines) + 1):
+                line_x_start, line_y_start, line_z_start = lowest_x + (i * offsetVectorStep[0]), lowest_y + (i * offsetVectorStep[1]), layerStartHeight
+                new_file.write(f'G0 X{line_x_start} Y{line_y_start} Z{line_z_start} \n')
+                self.createGradientLineZsteps(new_file, (line_x_start, line_y_start, line_z_start), zSteps, travelVectorZStep, gradientenLineStartHöhe, gradientenFlowRate, gradientenFlowRateFactor, j)
+                #self.createGradientLine(new_file, (line_x_start, line_y_start, line_z_start), travelVectornormiert, travelVectorLengthXY , gradientenLineStartHöhe, gradientenLineEndHöhe)   
+                #endpartLength = travelVectorLengthXY - (int(travelVectorLengthXY - 1) )
+                #endpartExtrusion = self.currentExtrusionT0 + self.filamentVolumeToMM(0.4 * endpartLength * gradientenLineEndHöhe)
+                #new_file.write(f'G1 X{line_x_start + travelVector[0] } Y{line_y_start + travelVector[1]} Z{gradientStartHöhe + gradientenLineEndHöhe} E{endpartExtrusion} \n') 
+                #self.currentExtrusionT0 = endpartExtrusion
 
     def findStartLine(self, gradientOuterLinedict, lowest_x, lowest_y):
         for line in gradientOuterLinedict:
@@ -252,11 +262,30 @@ class myFileReader:
                 lowest_y = line["start_y"]
         return lowest_x, lowest_y
 
-    def updateExtrusion(self, line):
-        if 'E' in line:
-            extrusion = line.split('E')[1]
-            extrusion = extrusion.split(' ')[0]
-            if self.current_tool == 'T0':
-                self.currentExtrusionT0 = float(extrusion)
-            else:
-                self.currentExtrusionT1 = float(extrusion)
+    def createGradientLine(self, new_file, start, travelVectornormiert, travelVectorLengthXY, gradientenLineStartHöhe, gradientenLineEndHöhe):
+        travelVectorStepmmXYZ = (travelVectornormiert[0], travelVectornormiert[1], (gradientenLineEndHöhe - gradientenLineStartHöhe) / travelVectorLengthXY)
+        for i in range(int(travelVectorLengthXY)) :
+            newExtrusion = self.currentExtrusionT0 + self.filamentVolumeToMM((0.4 * (i * travelVectorStepmmXYZ[2])))
+            ziel = (start[0] + (i * travelVectorStepmmXYZ[0]), start[1] + (i * travelVectorStepmmXYZ[1]), start[2] + (i * travelVectorStepmmXYZ[2]))
+
+            new_file.write(f'G1 X{round(ziel[0],3)} Y{round(ziel[1],3)} Z{round(ziel[2],3)} E{newExtrusion} \n')
+            self.currentExtrusionT0 = newExtrusion
+    
+    def filamentVolumeToMM(self, volume, gradientenFlowRate):
+        diameter = 1.75
+        flowrate = gradientenFlowRate
+        radius = diameter / 2
+        return volume / (radius * radius * 3.14159) * flowrate
+    
+    def createGradientLineZsteps(self, new_file, start, zSteps, travelVectorZStep, gradientenLineStartHöhe, gradientenFlowRate, gradientenFlowRateFactor, currentgradienenLayer = 1):
+        for i in range(1, int(zSteps) + 1):
+            distance = (travelVectorZStep[0] ** 2 + travelVectorZStep[1] ** 2) ** 0.5
+            layerHeight = (i) * 0.01 + gradientenLineStartHöhe
+            extrusionWidth = 0.4
+            
+            newExtrusion = self.currentExtrusionT0 + self.filamentVolumeToMM(extrusionWidth * distance * layerHeight, gradientenFlowRate * (gradientenFlowRateFactor ** i))
+            ziel = (start[0] + (i * travelVectorZStep[0]), start[1] + (i * travelVectorZStep[1]), start[2] + (i * travelVectorZStep[2] * currentgradienenLayer))
+            new_file.write(f'G1 F1500 X{round(ziel[0],3)} Y{round(ziel[1],3)} Z{round(ziel[2],3)} E{newExtrusion} \n')
+            self.currentExtrusionT0 = newExtrusion
+
+        
