@@ -5,8 +5,6 @@ import PyQt6.QtCore as QtCore
 from processOptions import ProcessOptions
 from processing.myFileReader import myFileReader
 
-
-
 class FilePicker(QWidget):
     def __init__(self):
         super().__init__()
@@ -82,6 +80,11 @@ class FilePicker(QWidget):
 
         self.on_radioButtonSchichtwechsel_toggled(self.radioButtonSchichtwechsel.isChecked())
     
+    # Methode zum Aktivieren/Deaktivieren der Reiseroute-Option
+    def on_radioButtonTravelOutside_toggled(self, checked):
+        self.travelOutsideLabel.setEnabled(checked)
+        self.travelOutside.setEnabled(checked)
+
     # Methode zum Initialisieren der Reiseroute-Gruppe
     def initReiserouteGroup(self):
         self.groupReiseroute = QGroupBox("Reiseroute", self)
@@ -91,6 +94,17 @@ class FilePicker(QWidget):
         # RadioButton für die Option der Reiseroute
         self.radioButtonTravelOutside = QRadioButton("Reiseroute nicht über das Bauteil", self)
         layoutReiseroute.addWidget(self.radioButtonTravelOutside)
+        self.radioButtonTravelOutside.toggled.connect(self.on_radioButtonTravelOutside_toggled)
+
+        # Textfelder für die Reiseroute minimale zurückzulegende Distanz
+        self.travelOutsideLayoutHB = QHBoxLayout()
+        self.travelOutsideLabel = QLabel("Minimale zurückzulegende Distanz", self)
+        self.travelOutside = QLineEdit(self)
+        self.travelOutside.setPlaceholderText("z.B. 2mm")
+        self.travelOutsideLayoutHB.addWidget(self.travelOutsideLabel)
+        self.travelOutsideLayoutHB.addWidget(self.travelOutside)
+        layoutReiseroute.addLayout(self.travelOutsideLayoutHB)
+        self.on_radioButtonTravelOutside_toggled(self.radioButtonTravelOutside.isChecked())
 
     # Methode aktiviert/deaktiviert die Gradienten-Option  
     def on_radioButtonGradienten_toggled(self, checked):
@@ -101,6 +115,8 @@ class FilePicker(QWidget):
         self.gradientenFlowRate.setEnabled(checked)
         self.gradientenFlowRateFactor.setEnabled(checked)
         self.gradientenAnzahl.setEnabled(checked)
+        self.gradientenTemperature.setEnabled(checked)
+        self.gradientenGeschwindigkeit.setEnabled(checked)
 
     # Methode zum Initialisieren der Gradienten-Gruppe
     def initGradientenGroup(self):
@@ -164,6 +180,16 @@ class FilePicker(QWidget):
         self.gradientenAnzahlLabel = QLabel("Anzahl der Gradienten", self)
         self.gradientenAnzahl = QLineEdit(self)
         self.gradientenAnzahl.setPlaceholderText("z.B. 5")
+        self.gradientenTemperatureLabel = QLabel("Gradient °C", self)
+        self.gradientenTemperature = QLineEdit(self)
+        self.gradientenTemperature.setPlaceholderText("z.B. 215°C")
+        self.gradientenGeschwindigkeitLabel = QLabel("Gradientengeschwindigkeit", self)
+        self.gradientenGeschwindigkeit = QLineEdit(self)
+        self.gradientenGeschwindigkeit.setPlaceholderText("z.B. 10mm/s")
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenGeschwindigkeitLabel)
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenGeschwindigkeit)
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenTemperatureLabel)
+        self.gradientenAnzahlLayoutHB.addWidget(self.gradientenTemperature)
         self.gradientenAnzahlLayoutHB.addWidget(self.gradientenAnzahlLabel)
         self.gradientenAnzahlLayoutHB.addWidget(self.gradientenAnzahl)
         layoutGradienten.addLayout(self.gradientenAnzahlLayoutHB)
@@ -243,7 +269,10 @@ class FilePicker(QWidget):
                     gradientenLineEndHöhe=self.get_float_from_text(self.gradientenLineEndHöhe.text()),
                     gradientenFlowRate=self.get_float_from_text(self.gradientenFlowRate.text()),
                     gradientenFlowRateFactor=self.get_float_from_text(self.gradientenFlowRateFactor.text()),
-                    gradientenLayers=int(self.get_float_from_text(self.gradientenAnzahl.text()))
+                    gradientenLayers=int(self.get_float_from_text(self.gradientenAnzahl.text())),
+                    gradientenTemperatur=int(self.get_float_from_text(self.gradientenTemperature.text())),
+                    minTravelDistance=self.get_float_from_text(self.travelOutside.text()),
+                    gradientenSpeed=int(self.get_float_from_text(self.gradientenGeschwindigkeit.text()))
                 )
             except ValueError as e:
                 print(f"Ungültige Eingabe: {e}")
@@ -260,7 +289,6 @@ def main():
     ex = FilePicker()
     ex.show()
     sys.exit(app.exec())
-
 
 # Starten der Anwendung mit der main Methode als Einstiegspunkt
 if __name__ == '__main__':

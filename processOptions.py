@@ -16,3 +16,6 @@ class ProcessOptions:
     gradientenFlowRate: int
     gradientenFlowRateFactor: int
     gradientenLayers: int
+    gradientenTemperatur: int
+    minTravelDistance: float
+    gradientenSpeed: int
